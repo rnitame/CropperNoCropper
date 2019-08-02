@@ -5,15 +5,17 @@ import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.Toast;
 
 import com.fenchtose.nocropper.BitmapResult;
@@ -27,24 +29,16 @@ import com.fenchtose.nocropper.ScaledCropper;
 import java.io.File;
 import java.io.IOException;
 
-import butterknife.Bind;
-import butterknife.ButterKnife;
-import butterknife.OnCheckedChanged;
-import butterknife.OnClick;
-
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener, CompoundButton.OnCheckedChangeListener {
 
     private static final int REQUEST_CODE_READ_PERMISSION = 22;
     private static final int REQUEST_GALLERY = 21;
     private static final String TAG = "MainActivity";
 
-    @Bind(R.id.imageview)
     CropperView mImageView;
 
-    @Bind(R.id.original_checkbox)
     CheckBox originalImageCheckbox;
 
-    @Bind(R.id.crop_checkbox)
     CheckBox cropAsyncCheckbox;
 
     private Bitmap originalBitmap;
@@ -62,7 +56,9 @@ public class MainActivity extends AppCompatActivity {
             Log.i(TAG, "Set landscape mode");
             setContentView(R.layout.activity_main_landscape);
         }
-        ButterKnife.bind(this);
+        mImageView = findViewById(R.id.imageview);
+        originalImageCheckbox = findViewById(R.id.original_checkbox);
+        cropAsyncCheckbox = findViewById(R.id.crop_checkbox);
         mImageView.setDebug(true);
 
         mImageView.setGridCallback(new CropperView.GridCallback() {
@@ -76,38 +72,11 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         });
-    }
-
-    @OnClick(R.id.image_button)
-    public void onImageButtonClicked() {
-        startGalleryIntent();
-    }
-
-    @OnClick(R.id.crop_button)
-    public void onImageCropClicked() {
-        if (cropAsyncCheckbox.isChecked()) {
-            cropImageAsync();
-        } else {
-            cropImage();
-        }
-    }
-
-    @OnClick(R.id.rotate_button)
-    public void onImageRotateClicked() {
-        rotateImage();
-    }
-
-    @OnClick(R.id.snap_button)
-    public void onImageSnapClicked() {
-        snapImage();
-    }
-
-    @OnCheckedChanged(R.id.gesture_checkbox)
-    public void toggleGestures() {
-        boolean enabled = mImageView.isGestureEnabled();
-        enabled = !enabled;
-        mImageView.setGestureEnabled(enabled);
-        Toast.makeText(this, "Gesture " + (enabled ? "Enabled" : "Disabled"), Toast.LENGTH_SHORT).show();
+        findViewById(R.id.image_button).setOnClickListener(this);
+        findViewById(R.id.crop_button).setOnClickListener(this);
+        findViewById(R.id.rotate_button).setOnClickListener(this);
+        findViewById(R.id.snap_button).setOnClickListener(this);
+        ((CheckBox) findViewById(R.id.gesture_checkbox)).setOnCheckedChangeListener(this);
     }
 
     private void loadNewImage(String filePath) {
@@ -118,8 +87,8 @@ public class MainActivity extends AppCompatActivity {
         Log.i(TAG, "bitmap: " + mBitmap.getWidth() + " " + mBitmap.getHeight());
 
         int maxP = Math.max(mBitmap.getWidth(), mBitmap.getHeight());
-        float scale1280 = (float)maxP / 1280;
-        Log.i(TAG, "scaled: " + scale1280 + " - " + (1/scale1280));
+        float scale1280 = (float) maxP / 1280;
+        Log.i(TAG, "scaled: " + scale1280 + " - " + (1 / scale1280));
 
         if (mImageView.getWidth() != 0) {
             mImageView.setMaxZoom(mImageView.getWidth() * 2 / 1280f);
@@ -137,8 +106,8 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
-        mBitmap = Bitmap.createScaledBitmap(mBitmap, (int)(mBitmap.getWidth()/scale1280),
-                (int)(mBitmap.getHeight()/scale1280), true);
+        mBitmap = Bitmap.createScaledBitmap(mBitmap, (int) (mBitmap.getWidth() / scale1280),
+                (int) (mBitmap.getHeight() / scale1280), true);
 
         mImageView.setImageBitmap(mBitmap);
     }
@@ -253,10 +222,10 @@ public class MainActivity extends AppCompatActivity {
         float scale;
         if (rotationCount % 2 == 0) {
             // same width and height
-            scale = (float) originalBitmap.getWidth()/mBitmap.getWidth();
+            scale = (float) originalBitmap.getWidth() / mBitmap.getWidth();
         } else {
             // width and height are interchanged
-            scale = (float) originalBitmap.getWidth()/mBitmap.getHeight();
+            scale = (float) originalBitmap.getWidth() / mBitmap.getHeight();
         }
 
         CropInfo cropInfo = result.getCropInfo().rotate90XTimes(mBitmap.getWidth(), mBitmap.getHeight(), rotationCount);
@@ -322,5 +291,30 @@ public class MainActivity extends AppCompatActivity {
         }
 
         isSnappedToCenter = !isSnappedToCenter;
+    }
+
+    @Override
+    public void onClick(View v) {
+        if (v.getId() == R.id.image_button) {
+            startGalleryIntent();
+        } else if (v.getId() == R.id.crop_button) {
+            if (cropAsyncCheckbox.isChecked()) {
+                cropImageAsync();
+            } else {
+                cropImage();
+            }
+        } else if (v.getId() == R.id.rotate_button) {
+            rotateImage();
+        } else if (v.getId() == R.id.snap_button) {
+            snapImage();
+        }
+    }
+
+    @Override
+    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+        boolean enabled = mImageView.isGestureEnabled();
+        enabled = !enabled;
+        mImageView.setGestureEnabled(enabled);
+        Toast.makeText(this, "Gesture " + (enabled ? "Enabled" : "Disabled"), Toast.LENGTH_SHORT).show();
     }
 }
